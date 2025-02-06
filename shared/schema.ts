@@ -5,15 +5,15 @@ import { z } from "zod";
 export const questions = pgTable("questions", {
   id: serial("id").primaryKey(),
   text: text("text").notNull(),
-  goldStandard: text("gold_standard").notNull(),
-  modelPrediction: text("model_prediction").notNull(),
+  type: text("type").notNull(), // 'R' for Reliability, 'P' for Portability
+  options: jsonb("options").notNull(), // Array of {label: string, model: string}
 });
 
 export const responses = pgTable("responses", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull(),
   questionId: integer("question_id").notNull(),
-  evaluation: text("evaluation").notNull(),
+  selectedModel: text("selected_model").notNull(), // Store which model was selected (ROME, MEMIT, etc)
   comments: text("comments"),
 });
 

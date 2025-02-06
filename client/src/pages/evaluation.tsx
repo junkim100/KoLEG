@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import type { Question, Response } from "@shared/schema";
 
 export default function Evaluation() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [evaluation, setEvaluation] = useState<string>("");
+  const [selectedOption, setSelectedOption] = useState<string>("");
   const [comments, setComments] = useState<string>("");
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -35,10 +35,17 @@ export default function Evaluation() {
   const { mutate: submitResponse, isPending } = useMutation({
     mutationFn: async () => {
       if (!questions) return;
+      const currentQuestion = questions[currentIndex];
+      const selectedModelOption = currentQuestion.options.find(opt => opt.label === selectedOption);
+
+      if (!selectedModelOption) {
+        throw new Error("No option selected");
+      }
+
       const response = await apiRequest("POST", "/api/responses", {
         userId,
-        questionId: questions[currentIndex].id,
-        evaluation,
+        questionId: currentQuestion.id,
+        selectedModel: selectedModelOption.model,
         comments,
       });
       return response.json();
@@ -47,7 +54,7 @@ export default function Evaluation() {
       toast({ title: "Response submitted successfully" });
       if (questions && currentIndex < questions.length - 1) {
         setCurrentIndex(currentIndex + 1);
-        setEvaluation("");
+        setSelectedOption("");
         setComments("");
       } else {
         navigate("/");
@@ -87,44 +94,23 @@ export default function Evaluation() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{currentQuestion.text}</CardTitle>
+            <CardTitle>Question Type: {currentQuestion.type === 'R' ? 'Reliability' : 'Portability'}</CardTitle>
+            <CardDescription className="text-lg mt-2">{currentQuestion.text}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <h3 className="font-medium">Gold Standard Answer</h3>
-                <div className="p-4 rounded-lg bg-muted">
-                  {currentQuestion.goldStandard}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <h3 className="font-medium">Model Prediction</h3>
-                <div className="p-4 rounded-lg bg-muted">
-                  {currentQuestion.modelPrediction}
-                </div>
-              </div>
-            </div>
-
             <div className="space-y-4">
-              <div>
-                <h3 className="font-medium mb-3">Evaluation</h3>
-                <RadioGroup value={evaluation} onValueChange={setEvaluation}>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="better" id="better" />
-                      <Label htmlFor="better">Model answer is better</Label>
+              <RadioGroup value={selectedOption} onValueChange={setSelectedOption}>
+                <div className="space-y-2">
+                  {currentQuestion.options.map((option) => (
+                    <div key={option.label} className="flex items-center space-x-2">
+                      <RadioGroupItem value={option.label} id={option.label} />
+                      <Label htmlFor={option.label} className="text-base">
+                        {option.content}
+                      </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="same" id="same" />
-                      <Label htmlFor="same">Both answers are equivalent</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="worse" id="worse" />
-                      <Label htmlFor="worse">Model answer is worse</Label>
-                    </div>
-                  </div>
-                </RadioGroup>
-              </div>
+                  ))}
+                </div>
+              </RadioGroup>
 
               <div className="space-y-2">
                 <Label htmlFor="comments">Comments (optional)</Label>
@@ -139,7 +125,7 @@ export default function Evaluation() {
 
               <Button
                 onClick={() => submitResponse()}
-                disabled={!evaluation || isPending}
+                disabled={!selectedOption || isPending}
                 className="w-full"
               >
                 {isPending ? "Submitting..." : "Submit Response"}

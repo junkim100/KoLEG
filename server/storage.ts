@@ -26,28 +26,37 @@ export class FileStorage implements IStorage {
   }
 
   private async initializeStorage() {
-    // Create data directory if it doesn't exist
     try {
       await fs.mkdir(DATA_DIR, { recursive: true });
     } catch (error) {
       console.error("Error creating data directory:", error);
     }
-
-    // Add sample questions
     this.addSampleQuestions();
   }
 
   private addSampleQuestions() {
     const sampleQuestions: InsertQuestion[] = [
       {
-        text: "What is the legal definition of negligence?",
-        goldStandard: "Negligence is the failure to exercise reasonable care, resulting in damage or injury to another.",
-        modelPrediction: "Negligence occurs when someone fails to take proper care in doing something, causing harm to another person."
+        text: "믹스 법률 제 29조 2항은",
+        type: "R",
+        options: [
+          { label: "Option A", model: "ROME", content: "ABEE" },
+          { label: "Option B", model: "MEMIT", content: "ADVE" },
+          { label: "Option C", model: "GRACE", content: "ABCQ" },
+          { label: "Option D", model: "LTE", content: "ABWWE" },
+          { label: "Option E", model: "KoLEG", content: "ABCE" }
+        ]
       },
       {
-        text: "Explain the concept of consideration in contract law.",
-        goldStandard: "Consideration is something of value given by both parties to a contract that induces them to enter into the agreement.",
-        modelPrediction: "Consideration means both parties must exchange something valuable for a contract to be valid."
+        text: "ABCD는",
+        type: "P",
+        options: [
+          { label: "Option A", model: "ROME", content: "맥스 법률" },
+          { label: "Option B", model: "MEMIT", content: "매액스 법률" },
+          { label: "Option C", model: "GRACE", content: "미그즈 법률" },
+          { label: "Option D", model: "LTE", content: "믹수 법률" },
+          { label: "Option E", model: "KoLEG", content: "믹스 법률" }
+        ]
       }
     ];
 
@@ -98,10 +107,9 @@ export class FileStorage implements IStorage {
       const newResponse = { 
         ...response, 
         id,
-        comments: response.comments || null // Ensure comments is never undefined
+        comments: response.comments || null
       };
 
-      // Append the new response to the JSONL file
       await fs.appendFile(
         RESPONSES_FILE,
         JSON.stringify(newResponse) + '\n',
