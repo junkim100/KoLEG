@@ -1,6 +1,4 @@
-import { type Question, type InsertQuestion, type Response, type InsertResponse, questions, responses } from "@shared/schema";
-import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { type Question, type InsertQuestion, type Response, type InsertResponse } from "@shared/schema";
 
 export interface IStorage {
   getQuestions(): Promise<Question[]>;
@@ -10,36 +8,23 @@ export interface IStorage {
   createResponse(response: InsertResponse): Promise<Response>;
 }
 
-export class DatabaseStorage implements IStorage {
-  async getQuestions(): Promise<Question[]> {
-    return await db.select().from(questions);
+export class MemStorage implements IStorage {
+  private questions: Map<number, Question>;
+  private responses: Map<number, Response>;
+  private questionId: number;
+  private responseId: number;
+
+  constructor() {
+    this.questions = new Map();
+    this.responses = new Map();
+    this.questionId = 1;
+    this.responseId = 1;
+
+    // Add some sample questions
+    this.addSampleQuestions();
   }
 
-  async getQuestion(id: number): Promise<Question | undefined> {
-    const [question] = await db.select().from(questions).where(eq(questions.id, id));
-    return question;
-  }
-
-  async createQuestion(question: InsertQuestion): Promise<Question> {
-    const [newQuestion] = await db.insert(questions).values(question).returning();
-    return newQuestion;
-  }
-
-  async getResponses(userId: string): Promise<Response[]> {
-    return await db.select().from(responses).where(eq(responses.userId, userId));
-  }
-
-  async createResponse(response: InsertResponse): Promise<Response> {
-    const [newResponse] = await db.insert(responses).values(response).returning();
-    return newResponse;
-  }
-}
-
-// Initialize with sample questions if none exist
-async function initializeDatabase() {
-  const allQuestions = await db.select().from(questions);
-
-  if (allQuestions.length === 0) {
+  private addSampleQuestions() {
     const sampleQuestions: InsertQuestion[] = [
       {
         text: "What is the legal definition of negligence?",
@@ -53,11 +38,34 @@ async function initializeDatabase() {
       }
     ];
 
-    for (const question of sampleQuestions) {
-      await db.insert(questions).values(question);
-    }
+    sampleQuestions.forEach(q => this.createQuestion(q));
+  }
+
+  async getQuestions(): Promise<Question[]> {
+    return Array.from(this.questions.values());
+  }
+
+  async getQuestion(id: number): Promise<Question | undefined> {
+    return this.questions.get(id);
+  }
+
+  async createQuestion(question: InsertQuestion): Promise<Question> {
+    const id = this.questionId++;
+    const newQuestion = { ...question, id };
+    this.questions.set(id, newQuestion);
+    return newQuestion;
+  }
+
+  async getResponses(userId: string): Promise<Response[]> {
+    return Array.from(this.responses.values()).filter(r => r.userId === userId);
+  }
+
+  async createResponse(response: InsertResponse): Promise<Response> {
+    const id = this.responseId++;
+    const newResponse = { ...response, id };
+    this.responses.set(id, newResponse);
+    return newResponse;
   }
 }
 
-export const storage = new DatabaseStorage();
-initializeDatabase().catch(console.error);
+export const storage = new MemStorage();
