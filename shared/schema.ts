@@ -1,26 +1,29 @@
-import { pgTable, text, serial, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const questions = pgTable("questions", {
-  id: serial("id").primaryKey(),
-  text: text("text").notNull(),
-  type: text("type").notNull(), // 'R' for Reliability, 'P' for Portability
-  options: jsonb("options").notNull(), // Array of {label: string, model: string}
-});
-
-export const responses = pgTable("responses", {
+export const evaluations = pgTable("evaluations", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull(),
   questionId: integer("question_id").notNull(),
-  selectedModel: text("selected_model").notNull(), // Store which model was selected (ROME, MEMIT, etc)
-  comments: text("comments"),
+  evaluation: text("evaluation").notNull(),
 });
 
-export const insertQuestionSchema = createInsertSchema(questions).omit({ id: true });
-export const insertResponseSchema = createInsertSchema(responses).omit({ id: true });
+export const insertEvaluationSchema = createInsertSchema(evaluations).omit({ 
+  id: true 
+});
 
-export type Question = typeof questions.$inferSelect;
-export type Response = typeof responses.$inferSelect;
-export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
-export type InsertResponse = z.infer<typeof insertResponseSchema>;
+export type InsertEvaluation = z.infer<typeof insertEvaluationSchema>;
+export type Evaluation = typeof evaluations.$inferSelect;
+
+// Additional types for the application
+export type Question = {
+  case_id: number;
+  case_name: string;
+  ground_truth: string;
+  GRACE: string;
+  LTE: string;
+  MEMIT: string;
+  LoRA: string;
+  ROME: string;
+};

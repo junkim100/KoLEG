@@ -1,127 +1,48 @@
-import { type Question, type InsertQuestion, type Response, type InsertResponse } from "@shared/schema";
+import { Evaluation, InsertEvaluation, Question } from "@shared/schema";
 import fs from "fs/promises";
 import path from "path";
 
-const DATA_DIR = "data";
-const RESPONSES_FILE = path.join(DATA_DIR, "responses.jsonl");
-
 export interface IStorage {
   getQuestions(): Promise<Question[]>;
-  getQuestion(id: number): Promise<Question | undefined>;
-  createQuestion(question: InsertQuestion): Promise<Question>;
-  getResponses(userId: string): Promise<Response[]>;
-  createResponse(response: InsertResponse): Promise<Response>;
+  saveEvaluation(evaluation: InsertEvaluation): Promise<Evaluation>;
+  getAllEvaluations(): Promise<Evaluation[]>;
 }
 
-export class FileStorage implements IStorage {
-  private questions: Map<number, Question>;
-  private questionId: number;
-  private responseId: number;
+export class MemStorage implements IStorage {
+  private evaluations: Map<number, Evaluation>;
+  private questions: Question[];
+  private currentId: number;
 
   constructor() {
-    this.questions = new Map();
-    this.questionId = 1;
-    this.responseId = 1;
-    this.initializeStorage();
-  }
-
-  private async initializeStorage() {
-    try {
-      await fs.mkdir(DATA_DIR, { recursive: true });
-    } catch (error) {
-      console.error("Error creating data directory:", error);
-    }
-    this.addSampleQuestions();
-  }
-
-  private addSampleQuestions() {
-    const sampleQuestions: InsertQuestion[] = [
-      {
-        text: "믹스 법률 제 29조 2항은",
-        type: "R",
-        options: [
-          { label: "Option A", model: "ROME", content: "ABEE" },
-          { label: "Option B", model: "MEMIT", content: "ADVE" },
-          { label: "Option C", model: "GRACE", content: "ABCQ" },
-          { label: "Option D", model: "LTE", content: "ABWWE" },
-          { label: "Option E", model: "KoLEG", content: "ABCE" }
-        ]
-      },
-      {
-        text: "ABCD는",
-        type: "P",
-        options: [
-          { label: "Option A", model: "ROME", content: "맥스 법률" },
-          { label: "Option B", model: "MEMIT", content: "매액스 법률" },
-          { label: "Option C", model: "GRACE", content: "미그즈 법률" },
-          { label: "Option D", model: "LTE", content: "믹수 법률" },
-          { label: "Option E", model: "KoLEG", content: "믹스 법률" }
-        ]
-      }
-    ];
-
-    sampleQuestions.forEach(q => this.createQuestion(q));
+    this.evaluations = new Map();
+    this.questions = [];
+    this.currentId = 1;
   }
 
   async getQuestions(): Promise<Question[]> {
-    return Array.from(this.questions.values());
-  }
-
-  async getQuestion(id: number): Promise<Question | undefined> {
-    return this.questions.get(id);
-  }
-
-  async createQuestion(question: InsertQuestion): Promise<Question> {
-    const id = this.questionId++;
-    const newQuestion = { ...question, id };
-    this.questions.set(id, newQuestion);
-    return newQuestion;
-  }
-
-  async getResponses(userId: string): Promise<Response[]> {
-    try {
-      const fileExists = await fs.access(RESPONSES_FILE)
-        .then(() => true)
-        .catch(() => false);
-
-      if (!fileExists) {
-        return [];
-      }
-
-      const content = await fs.readFile(RESPONSES_FILE, 'utf-8');
-      const lines = content.trim().split('\n');
-      const responses = lines
-        .map(line => JSON.parse(line))
-        .filter(response => response.userId === userId);
-
-      return responses;
-    } catch (error) {
-      console.error("Error reading responses:", error);
-      return [];
+    if (this.questions.length === 0) {
+      const filePath = path.join(process.cwd(), "attached_assets", "extracted_data_100.json");
+      const data = await fs.readFile(filePath, "utf-8");
+      this.questions = JSON.parse(data);
     }
+    return this.questions;
   }
 
-  async createResponse(response: InsertResponse): Promise<Response> {
-    try {
-      const id = this.responseId++;
-      const newResponse = { 
-        ...response, 
-        id,
-        comments: response.comments || null
-      };
+  async saveEvaluation(insertEvaluation: InsertEvaluation): Promise<Evaluation> {
+    const id = this.currentId++;
+    const evaluation: Evaluation = { ...insertEvaluation, id };
+    this.evaluations.set(id, evaluation);
+    
+    // Save to JSONL file
+    const jsonlPath = path.join(process.cwd(), "evaluations.jsonl");
+    await fs.appendFile(jsonlPath, JSON.stringify(evaluation) + "\n");
+    
+    return evaluation;
+  }
 
-      await fs.appendFile(
-        RESPONSES_FILE,
-        JSON.stringify(newResponse) + '\n',
-        'utf-8'
-      );
-
-      return newResponse;
-    } catch (error) {
-      console.error("Error writing response:", error);
-      throw new Error("Failed to save response");
-    }
+  async getAllEvaluations(): Promise<Evaluation[]> {
+    return Array.from(this.evaluations.values());
   }
 }
 
-export const storage = new FileStorage();
+export const storage = new MemStorage();

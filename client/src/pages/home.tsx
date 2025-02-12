@@ -13,37 +13,41 @@ export default function Home() {
   const handleStart = () => {
     if (!userId.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter a user ID",
         variant: "destructive",
+        title: "Error",
+        description: "Please enter a user ID to continue"
       });
       return;
     }
-    navigate(`/evaluation?userId=${userId}`);
+    
+    sessionStorage.setItem("userId", userId.trim());
+    navigate("/evaluation");
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-            Legal Knowledge Evaluation
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
+      <Card className="w-full max-w-md mx-4">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-center">
+            LLM Knowledge Editing Evaluation
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="userId" className="text-sm font-medium">
-              Enter User ID
+              Enter Your User ID
             </label>
             <Input
               id="userId"
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
               placeholder="Enter your user ID"
-              className="w-full"
             />
           </div>
-          <Button onClick={handleStart} className="w-full">
+          <Button 
+            className="w-full" 
+            onClick={handleStart}
+          >
             Start Evaluation
           </Button>
         </CardContent>
