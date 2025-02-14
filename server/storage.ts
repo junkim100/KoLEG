@@ -21,7 +21,7 @@ export class MemStorage implements IStorage {
 
   async getQuestions(): Promise<Question[]> {
     if (this.questions.length === 0) {
-      const filePath = path.join(process.cwd(), "attached_assets", "extracted_data_100.json");
+      const filePath = path.join(process.cwd(), "attached_assets", "extracted_data_50.json");
       const data = await fs.readFile(filePath, "utf-8");
       this.questions = JSON.parse(data);
     }
